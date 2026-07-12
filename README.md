@@ -1,16 +1,16 @@
 # 🏥 Clínica SIGmasters - Sistema de Gestão Médica
 
-Sistema completo e responsivo para gestão de clínicas, desenvolvido com foco na usabilidade, segurança de dados sensíveis e conformidade estrita com a LGPD. O sistema integra três perfis principais de utilizadores (Paciente, Doutor e Administrador), oferecendo desde o agendamento inteligente de consultas até à gestão de prontuários imutáveis e galerias de fotos clínicas.
+Sistema completo e responsivo para gestão de clínicas, desenvolvido com foco na usabilidade, segurança de dados sensíveis e conformidade estrita com a LGPD. O sistema integra dois perfis de utilizadores (Paciente e Doutor), oferecendo desde o agendamento inteligente de consultas até à gestão de prontuários imutáveis e galerias de fotos clínicas. O próprio doutor acumula as funções administrativas da clínica (gestão de procedimentos, disponibilidade e relatórios).
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-* **Frontend:** React (SPA)
-* **Backend:** Node.js / Python (API RESTful)
-* **Banco de Dados:** PostgreSQL (Relacional)
-* **Armazenamento de Arquivos:** AWS S3 (ou Cloudflare R2 compatível com S3)
-* **Hospedagem & CDN:** Cloudflare (Pages / Workers / Proxy)
+* **Frontend:** React + Vite (SPA)
+* **Backend / BaaS:** Supabase (Auth, PostgreSQL, Storage, RLS)
+* **Banco de Dados:** PostgreSQL (via Supabase)
+* **Armazenamento de Arquivos:** Supabase Storage (S3-compatível, com URLs assinadas)
+* **Hospedagem & CDN:** Cloudflare (Pages / Proxy)
 
 ---
 
@@ -18,10 +18,10 @@ Sistema completo e responsivo para gestão de clínicas, desenvolvido com foco n
 
 Por lidar com dados sensíveis de saúde, a segurança é a base da arquitetura:
 
-* **Criptografia:** Senhas com hash forte (Bcrypt/Argon2).
+* **Autenticação:** Gerida pelo Supabase Auth, com senhas armazenadas via hash forte e tokens JWT emitidos automaticamente.
 * **Tráfego Seguro:** HTTPS obrigatório em todas as pontas (forçado via Cloudflare).
-* **Controlo de Acesso:** Autenticação via JWT com tempo de expiração e middlewares de autorização por perfil (RBAC).
-* **Privacidade de Imagens:** Fotos armazenadas em Object Storage não são públicas. O acesso ocorre exclusivamente via URLs Assinadas de curta duração.
+* **Controlo de Acesso:** RLS (Row Level Security) diretamente no PostgreSQL — o próprio banco garante que um paciente só veja os próprios dados, independente de bugs na aplicação.
+* **Privacidade de Imagens:** Fotos armazenadas no Supabase Storage não são públicas. O acesso ocorre exclusivamente via URLs Assinadas de curta duração (ex.: 60 segundos).
 * **Auditoria e Imutabilidade:** Prontuários não podem ser apagados ou alterados diretamente (apenas via adendos). Toda a alteração em dados clínicos gera um log de auditoria.
 
 ---
@@ -31,45 +31,46 @@ Por lidar com dados sensíveis de saúde, a segurança é a base da arquitetura:
 O projeto está estruturado em 7 fases sequenciais e lógicas.
 
 ### Fase 0: Fundação
-- [ ] Configuração do Banco de Dados (PostgreSQL)
-- [ ] Setup do framework backend e repositório
-- [ ] Containerização inicial (Docker/docker-compose)
-- [ ] Pipeline básica de CI/CD
-- [ ] Definição da estrutura de pastas do projeto
+- [ ] Setup do projeto Supabase (criação, chaves, `.env`)
+- [ ] Setup do frontend (React + Vite)
+- [ ] Estrutura inicial de pastas e roteamento
+- [ ] Containerização (Docker/docker-compose) para ambiente local
+- [ ] Pipeline básica de CI/CD (GitHub Actions)
 
 ### Fase 1: Identidade e acesso
-- [ ] Modelar tabela de utilizadores (Migrations)
-- [ ] Criar endpoints de registo (Paciente e Doutor)
-- [ ] Implementar Login com JWT
-- [ ] Criar Middlewares de permissões (Admin, Doutor, Paciente)
+- [ ] Modelar tabelas de usuários, `patients` e `doctors` (migrations)
+- [ ] Endpoints de registo (cadastro de paciente; doutor criado internamente)
+- [ ] Login com Supabase Auth
+- [ ] Guard de rotas no frontend (redirecionamento por perfil)
+- [ ] Políticas RLS para separar dados de paciente e doutor
 
 ### Fase 2: Cadastros base
-- [ ] CRUD de Procedimentos (Acesso Doutor/Admin)
+- [ ] CRUD de Procedimentos (acesso do doutor)
 - [ ] Perfil do Doutor (CRM, especialidade, bio)
 - [ ] Perfil do Paciente (CPF, data de nascimento, alergias, contacto)
-- [ ] Configuração de Disponibilidade do Doutor (Dias e horários padrão)
+- [ ] Configuração de Disponibilidade do Doutor (dias e horários padrão)
 
 ### Fase 3: Agendamento
-- [ ] Lógica de cálculo de slots disponíveis (Prevenção de conflito de horários)
-- [ ] Endpoint para criar consulta (Paciente escolhe procedimento + horário livre)
-- [ ] Interface da Agenda do Doutor (Visualização em Dia/Semana/Mês)
-- [ ] Funcionalidade de cancelar e remarcar consulta (com validação de regras de negócio)
+- [ ] Lógica de cálculo de slots disponíveis (prevenção de conflito de horários)
+- [ ] Endpoint para criar consulta (paciente escolhe procedimento + horário livre)
+- [ ] Interface da Agenda do Doutor (visualização em dia/semana/mês)
+- [ ] Cancelar e remarcar consulta (com validação de regras de negócio)
 
 ### Fase 4: Prontuário e ficha clínica
-- [ ] Ficha do Paciente (Visão consolidada para o doutor)
+- [ ] Ficha do Paciente (visão consolidada para o doutor)
 - [ ] Registo de prontuário vinculado a uma consulta específica
-- [ ] Implementação da máquina de estados da consulta (Agendado -> Em atendimento -> Finalizado)
-- [ ] Sistema de Auditoria de prontuários (Imutabilidade)
+- [ ] Máquina de estados da consulta (Agendado → Em atendimento → Finalizado)
+- [ ] Sistema de auditoria de prontuários (imutabilidade via triggers)
 
 ### Fase 5: Galeria de fotos
-- [ ] Integração com Object Storage (S3/Cloudflare R2) para geração de URLs assinadas de upload/download
-- [ ] Sistema de categorização de imagens ("Antes" e "Depois")
+- [ ] Integração com Supabase Storage para upload e URLs assinadas
+- [ ] Categorização de imagens ("Antes" e "Depois")
 - [ ] Registo explícito de consentimento do paciente para uso de imagens
-- [ ] Galeria renderizada no perfil do paciente e na ficha visualizada pelo doutor
+- [ ] Galeria renderizada no perfil do paciente e na ficha do doutor
 
 ### Fase 6: Notificações, relatórios e polimento
-- [ ] Disparo de e-mails/alertas automáticos de agendamento e cancelamento
-- [ ] Relatórios gerenciais (Dashboard do Administrador)
+- [ ] Envio de e-mails automáticos de agendamento e cancelamento
+- [ ] Relatórios gerenciais (dashboard do doutor)
 - [ ] Polimento de UI/UX
 - [ ] Deploy final em produção
 
@@ -80,6 +81,4 @@ O projeto está estruturado em 7 fases sequenciais e lógicas.
 A infraestrutura do projeto tira proveito do ecossistema Cloudflare para garantir velocidade e segurança global:
 
 * **Cloudflare Pages:** Utilizado para hospedar o frontend em React. Garante deploy automático a cada push na branch principal, distribuição global em borda (Edge Network) e certificados SSL gratuitos.
-* **Cloudflare Proxy (DNS):** Protege a API do backend escondendo o IP original do servidor, mitigando ataques DDoS e forçando a comunicação criptografada (HTTPS Strict).
-* **Cloudflare R2 (Opcional):** Como alternativa cost-effective ao AWS S3, podemos utilizar o R2 para armazenar as fotos com API 100% compatível com a do S3 (evitando taxas de egress).
-
+* **Cloudflare Proxy (DNS):** Protege a API do Supabase escondendo detalhes de infraestrutura, mitigando ataques e forçando comunicação criptografada (HTTPS Strict).
