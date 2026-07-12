@@ -1,4 +1,4 @@
-# 🏥 Clínica SIGmasters - Sistema de Gestão Médica
+# 🏥 Sistema de Gestão Médica
 
 Sistema completo e responsivo para gestão de clínicas, desenvolvido com foco na usabilidade, segurança de dados sensíveis e conformidade estrita com a LGPD. O sistema integra dois perfis de utilizadores (Paciente e Doutor), oferecendo desde o agendamento inteligente de consultas até à gestão de prontuários imutáveis e galerias de fotos clínicas. O próprio doutor acumula as funções administrativas da clínica (gestão de procedimentos, disponibilidade e relatórios).
 
