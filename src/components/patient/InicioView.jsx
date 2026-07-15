@@ -4,19 +4,19 @@ import { formatDate } from '../../utils/format'
 import { AppointmentRow, LoadingState } from '../ui'
 
 export default function InicioView() {
-  const { user } = useOutletContext()
+  const { user, profile } = useOutletContext()
   const navigate = useNavigate()
   const { appointments, loading } = useAppointments(user?.id)
 
   const nextAppointment = appointments.find((a) => a.status === 'scheduled')
   const doneAppointments = appointments.filter((a) => a.status === 'done')
-  const firstName = user?.name?.split(' ')[0] ?? ''
+  const firstName = (profile?.full_name ?? '').split(' ')[0]
 
   return (
     <section className="view-section">
       <header>
         <div className="header-title">
-          <h1>Olá, {firstName}!</h1>
+          <h1>Olá{firstName ? ', ' + firstName : ''}!</h1>
           <p>Bem-vindo à sua área de autoatendimento.</p>
         </div>
         <button className="btn-primary" onClick={() => navigate('/paciente/agendar')}>

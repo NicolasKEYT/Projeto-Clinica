@@ -1,6 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { useCurrentUser } from '../hooks/usePatientData'
-import { LoadingState } from './ui'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const NAV_LINKS = [
   { to: '/paciente', label: 'Meu Início', end: true },
@@ -9,7 +8,7 @@ const NAV_LINKS = [
   { to: '/paciente/fotos', label: 'Galeria de Fotos' },
 ]
 
-function Sidebar({ userName }) {
+function Sidebar({ name, onLogout }) {
   return (
     <aside>
       <div className="logo">Clínica SIGmasters</div>
@@ -26,21 +25,29 @@ function Sidebar({ userName }) {
         ))}
       </nav>
       <div className="user-profile">
-        <span className="name">{userName ?? 'Carregando...'}</span>
+        <span className="name">{name}</span>
         <span className="role">Paciente</span>
+        <button className="logout-btn" onClick={onLogout}>Sair</button>
       </div>
     </aside>
   )
 }
 
 export default function PatientLayout() {
-  const { user, loading } = useCurrentUser()
+  const { user, profile, signOut } = useAuth()
+  const navigate = useNavigate()
+  const name = profile?.full_name ?? user?.email ?? 'Paciente'
+
+  async function handleLogout() {
+    await signOut()
+    navigate('/login')
+  }
 
   return (
     <div className="app-shell">
-      <Sidebar userName={user?.name} />
+      <Sidebar name={name} onLogout={handleLogout} />
       <main>
-        {loading ? <LoadingState label="Carregando sua área..." /> : <Outlet context={{ user }} />}
+        <Outlet context={{ user, profile }} />
       </main>
     </div>
   )

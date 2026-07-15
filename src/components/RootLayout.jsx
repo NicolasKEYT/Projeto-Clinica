@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router-dom'
-import RoleSwitcher from './RoleSwitcher'
+import ThemeToggle from './ThemeToggle'
 
 export default function RootLayout() {
   return (
     <>
-      <RoleSwitcher />
+      <ThemeToggle />
       <Outlet />
     </>
   )
