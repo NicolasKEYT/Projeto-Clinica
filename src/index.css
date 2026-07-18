@@ -197,8 +197,8 @@ header { display: flex; justify-content: space-between; align-items: flex-start;
 .status.active-tag { background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
 
 .actions-col { display: flex; gap: 8px; justify-content: flex-end; }
-.action-link { color: var(--text-muted); text-decoration: none; font-size: 12px; cursor: pointer; }
-.action-link:hover { color: var(--text-main); text-decoration: underline; }
+.action-link {background: none; border: none; padding: 0; margin: 0; font: inherit; font-weight: 600; color: var(--accent, #3b82f6); cursor: pointer; appearance: none; transition: opacity 0.15s;}
+.action-link:hover {opacity: 0.8; text-decoration: underline;}
 
 /* ---- Métricas / cards ---- */
 .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
@@ -458,3 +458,166 @@ body.light-theme .image-box { background-color: #eaeaea; color: #555; }
   transition: all 0.2s;
 }
 .logout-btn:hover { background: var(--bg-surface-hover); color: var(--text-main); }
+
+/* Layout de Card para adicionar procedimentos. */
+/* NOVO: overlay escuro atrás do card, cobre a tela toda e centraliza o conteúdo */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  animation: modal-overlay-in 0.15s ease-out;
+}
+
+/* NOVO: o card em si, centralizado na tela */
+.modal-card {
+  background: var(--bg-surface, #16181d);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  position: relative;
+  animation: modal-card-in 0.2s ease-out;
+}
+
+/* NOVO: barra de destaque no topo do card, reforça a cor de marca (mesmo azul do botão Salvar) */
+.modal-card::before {
+  content: '';
+  display: block;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(90deg, var(--accent, #3b82f6), transparent);
+}
+
+/* NOVO: cabeçalho do modal, título + botão de fechar */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* NOVO: botão "×" de fechar */
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted, #9ca3af);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* NOVO: corpo do modal, onde fica o formulário */
+.modal-body {
+  padding: 20px 24px 24px;
+}
+
+/* NOVO: layout do formulário, um campo por linha */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #9ca3af);
+  font-weight: 500;
+}
+
+.form-grid input[type='text'],
+.form-grid input[type='number'] {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.form-grid input[type='text']:focus,
+.form-grid input[type='number']:focus {
+  outline: none;
+  border-color: var(--accent, #3b82f6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* NOVO: campo do checkbox "Ativo", em linha */
+.checkbox-field {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.checkbox-field input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent, #3b82f6);
+}
+
+/* NOVO: mensagem de erro de validação */
+.form-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* NOVO: rodapé do formulário, botões alinhados à direita */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Animações de entrada */
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-card {
+    animation: none;
+  }
+}
+
+/* Responsivo pra telas pequenas */
+@media (max-width: 480px) {
+  .modal-card {
+    max-width: 100%;
+  }
+}
