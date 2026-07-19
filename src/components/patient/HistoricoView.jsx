@@ -11,7 +11,11 @@ export default function HistoricoView() {
       <header>
         <div className="header-title">
           <h1>Meu Histórico</h1>
-          <p>Registro de atendimentos.</p>
+          <p>
+            {loading
+              ? 'Carregando seus atendimentos...'
+              : `${appointments.length} ${appointments.length === 1 ? 'registro' : 'registros'} de atendimento.`}
+          </p>
         </div>
       </header>
 
@@ -24,6 +28,10 @@ export default function HistoricoView() {
         </div>
         {loading ? (
           <LoadingState />
+        ) : appointments.length === 0 ? (
+          <p className="picker-empty" style={{ paddingTop: 16 }}>
+            Você ainda não possui consultas. Assim que agendar, elas aparecem aqui.
+          </p>
         ) : (
           appointments.map((a) => <AppointmentRow key={a.id} appointment={a} />)
         )}
