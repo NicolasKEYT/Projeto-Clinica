@@ -10,10 +10,7 @@ const MOCK = {
     { id: 'a2', time: '09:30', patient: 'Mariana Costa', procedure: 'Avaliação', status: 'done' },
     { id: 'a3', time: '10:45', patient: 'Roberto Alves', procedure: 'Retorno', status: 'waiting' },
   ],
-  procedures: [
-    { id: 1, name: 'Consulta de Rotina', duration_min: 30, price_base: 250.0, active: true },
-    { id: 2, name: 'Avaliação Estética', duration_min: 45, price_base: 350.0, active: true },
-  ],
+  procedures: [],
   patients: [
     { id: 'p1', name: 'Ana Beatriz Lima', cpf: '123.***.***-00', lastVisit: 'Hoje', phone: '(11) 98765-4321' },
     { id: 'p2', name: 'Mariana Costa', cpf: '456.***.***-22', lastVisit: 'Hoje', phone: '(21) 99999-8888' },
@@ -86,3 +83,58 @@ export async function getPatients(search = '') {
   // if (error) throw error
   // return data
 }
+
+// NOVO: cria um novo procedimento (usado pelo formulário do modal em ProcedimentosView)
+export async function createProcedure(procedure) {
+  if (USE_MOCK) {
+    await delay(200)
+    const newProcedure = {
+      id: Date.now(),
+      name: procedure.name.trim(),
+      duration_min: Number(procedure.duration_min),
+      price_base: Number(procedure.price_base),
+      active: procedure.active ?? true,
+    }
+    MOCK.procedures.push(newProcedure) // NOVO: insere no mock em memória pra refletir na lista após o refetch
+    return newProcedure
+  }
+  requireSupabase()
+  // const { data, error } = await supabase.from('procedures').insert({
+  //   name: procedure.name.trim(),
+  //   duration_min: Number(procedure.duration_min),
+  //   price_base: Number(procedure.price_base),
+  //   active: procedure.active ?? true,
+  // }).select().single()
+  // if (error) throw error
+  // return data
+}
+
+  // NOVO: atualiza um procedimento existente
+export async function updateProcedure(id, updates) {
+  if (USE_MOCK) {
+    await delay(200)
+    const index = MOCK.procedures.findIndex((p) => p.id === id)
+    if (index === -1) {
+      throw new Error('Procedimento não encontrado.')
+    }
+    const updated = {
+      ...MOCK.procedures[index],
+      name: updates.name.trim(),
+      duration_min: Number(updates.duration_min),
+      price_base: Number(updates.price_base),
+      active: updates.active ?? true,
+    }
+    MOCK.procedures[index] = updated // NOVO: substitui o item no array mock
+    return updated
+  }
+  requireSupabase()
+  // const { data, error } = await supabase.from('procedures').update({
+  //   name: updates.name.trim(),
+  //   duration_min: Number(updates.duration_min),
+  //   price_base: Number(updates.price_base),
+  //   active: updates.active ?? true,
+  // }).eq('id', id).select().single()
+  // if (error) throw error
+  // return data
+  }
+

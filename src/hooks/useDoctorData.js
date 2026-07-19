@@ -17,8 +17,8 @@ export function useTodaySchedule() {
 }
 
 export function useDoctorProcedures() {
-  const { data, loading, error } = useAsync(() => getProcedures(), [])
-  return { procedures: data ?? [], loading, error }
+  const { data, loading, error, refetch } = useAsync(() => getProcedures(), []) // ALTERADO: refetch extraído do useAsync
+  return { procedures: data ?? [], loading, error, refetch } // ALTERADO: refetch exposto para quem usar o hook
 }
 
 export function usePatients(search) {

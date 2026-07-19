@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react' // ALTERADO: adicionado useEffect
 import { formatDate } from '../utils/format'
 import { statusLabel } from '../utils/status'
 
@@ -55,4 +55,37 @@ export function useToast() {
   const ctx = useContext(ToastContext)
   if (!ctx) throw new Error('useToast precisa estar dentro de <ToastProvider>')
   return ctx
+}
+
+// NOVO: componente de modal genérico e reutilizável (usado por qualquer tela que precise de um card sobreposto)
+export function Modal({ title, onClose, children }) {
+  // NOVO: fecha o modal ao apertar Esc
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
+    // NOVO: overlay escuro; clicar fora do card fecha o modal
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-card"
+        onClick={(e) => e.stopPropagation()} // NOVO: impede que clique dentro do card feche o modal
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <header className="modal-header">
+          <h2>{title}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Fechar">
+            ×
+          </button>
+        </header>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  )
 }
