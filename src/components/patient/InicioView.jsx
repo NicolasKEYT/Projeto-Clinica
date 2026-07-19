@@ -1,6 +1,7 @@
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useAppointments } from '../../hooks/usePatientData'
 import { formatDate } from '../../utils/format'
+import { proximaConsulta, consultasRealizadas } from '../../utils/status'
 import { AppointmentRow, LoadingState } from '../ui'
 
 export default function InicioView() {
@@ -8,8 +9,8 @@ export default function InicioView() {
   const navigate = useNavigate()
   const { appointments, loading } = useAppointments(user?.id)
 
-  const nextAppointment = appointments.find((a) => a.status === 'scheduled')
-  const doneAppointments = appointments.filter((a) => a.status === 'done')
+  const proxima = proximaConsulta(appointments)
+  const realizadas = consultasRealizadas(appointments)
   const firstName = (profile?.full_name ?? '').split(' ')[0]
 
   return (
@@ -26,21 +27,26 @@ export default function InicioView() {
 
       {loading ? (
         <LoadingState />
-      ) : nextAppointment ? (
+      ) : proxima ? (
         <div className="highlight-card">
           <div className="highlight-info">
             <h3>Próximo Agendamento</h3>
-            <h2 style={{ textTransform: 'capitalize' }}>{formatDate(nextAppointment.date, 'full')}</h2>
+            <h2 style={{ textTransform: 'capitalize' }}>{formatDate(proxima.date, 'full')}</h2>
             <p>
-              {nextAppointment.procedure} com {nextAppointment.doctor}
+              {proxima.procedure}
+              {proxima.doctor && proxima.doctor !== '—' ? ` com ${proxima.doctor}` : ''}
+              {proxima.clinic ? ` • ${proxima.clinic}` : ''}
             </p>
           </div>
           <button className="btn-secondary">Remarcar</button>
         </div>
       ) : (
-        <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>
-          Você não possui agendamentos futuros.
-        </p>
+        <div className="empty-highlight">
+          <p>Você não possui agendamentos futuros.</p>
+          <button className="btn-primary" onClick={() => navigate('/paciente/agendar')}>
+            Agendar agora
+          </button>
+        </div>
       )}
 
       <div className="section-box">
@@ -51,8 +57,15 @@ export default function InicioView() {
           <span>Profissional</span>
           <span style={{ textAlign: 'right' }}>Status</span>
         </div>
-        {!loading &&
-          doneAppointments.slice(0, 2).map((a) => <AppointmentRow key={a.id} appointment={a} />)}
+        {loading ? (
+          <LoadingState />
+        ) : realizadas.length === 0 ? (
+          <p className="picker-empty" style={{ paddingTop: 16 }}>
+            Nenhuma consulta realizada ainda.
+          </p>
+        ) : (
+          realizadas.slice(0, 3).map((a) => <AppointmentRow key={a.id} appointment={a} />)
+        )}
       </div>
     </section>
   )

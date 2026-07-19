@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react' // ALTERADO: adicionado useEffect
 import { formatDate } from '../utils/format'
-
-const STATUS_LABELS = { done: 'Realizada', scheduled: 'Agendado' }
+import { statusLabel } from '../utils/status'
 
 export function StatusBadge({ status }) {
-  return <span className={`status ${status}`}>{STATUS_LABELS[status] ?? status}</span>
+  return <span className={`status ${status}`}>{statusLabel(status)}</span>
 }
 
 export function AppointmentRow({ appointment }) {
