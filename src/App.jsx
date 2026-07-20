@@ -17,6 +17,7 @@ import DashboardView from './components/doctor/DashboardView'
 import ProcedimentosView from './components/doctor/ProcedimentosView'
 import PacientesView from './components/doctor/PacientesView'
 import ConfiguracoesView from './components/doctor/ConfiguracoesView'
+import ClinicasView from './components/doctor/ClinicasView'
 
 function homeFor(role) {
   return role === 'doctor' ? '/doutor' : '/paciente'
@@ -82,6 +83,7 @@ export default function App() {
               >
                 <Route index element={<DashboardView />} />
                 <Route path="procedimentos" element={<ProcedimentosView />} />
+                <Route path="clinicas" element={<ClinicasView />} /> 
                 <Route path="pacientes" element={<PacientesView />} />
                 <Route path="configuracoes" element={<ConfiguracoesView />} />
               </Route>

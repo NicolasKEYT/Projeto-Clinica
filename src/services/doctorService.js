@@ -10,6 +10,7 @@ const MOCK = {
     { id: 'a2', time: '09:30', patient: 'Mariana Costa', procedure: 'Avaliação', status: 'done' },
     { id: 'a3', time: '10:45', patient: 'Roberto Alves', procedure: 'Retorno', status: 'waiting' },
   ],
+  clinics: [{id: 1, name: 'Clínica Vida Nova', cnpj: '12.345.678/0001-90', phone: '(11) 3456-7890', address: 'Av. Paulista, 1000 - São Paulo/SP', description: 'Unidade principal, atendimento geral.',},],
   procedures: [],
   patients: [
     { id: 'p1', name: 'Ana Beatriz Lima', cpf: '123.***.***-00', lastVisit: 'Hoje', phone: '(11) 98765-4321' },
@@ -94,6 +95,7 @@ export async function createProcedure(procedure) {
       duration_min: Number(procedure.duration_min),
       price_base: Number(procedure.price_base),
       active: procedure.active ?? true,
+      clinic_ids: procedure.clinic_ids ?? [],
     }
     MOCK.procedures.push(newProcedure) // NOVO: insere no mock em memória pra refletir na lista após o refetch
     return newProcedure
@@ -123,6 +125,7 @@ export async function updateProcedure(id, updates) {
       duration_min: Number(updates.duration_min),
       price_base: Number(updates.price_base),
       active: updates.active ?? true,
+      clinic_ids: updates.clinic_ids ?? [],
     }
     MOCK.procedures[index] = updated // NOVO: substitui o item no array mock
     return updated
@@ -138,3 +141,76 @@ export async function updateProcedure(id, updates) {
   // return data
   }
 
+  // NOVO: lista as clínicas cadastradas
+export async function getClinics() {
+  if (USE_MOCK) {
+    await delay(200)
+    return MOCK.clinics
+  }
+  requireSupabase()
+  // const { data, error } = await supabase.from('clinics')
+  //   .select('id, name, cnpj, phone, address, description').order('name')
+  // if (error) throw error
+  // return data
+}
+
+// NOVO: cadastra uma nova clínica
+export async function createClinic(clinic) {
+  if (USE_MOCK) {
+    await delay(200)
+    const newClinic = {
+      id: Date.now(),
+      name: clinic.name.trim(),
+      cnpj: clinic.cnpj.trim(),
+      phone: clinic.phone.trim(),
+      address: clinic.address.trim(),
+      description: clinic.description.trim(),
+    }
+    MOCK.clinics.push(newClinic)
+    return newClinic
+  }
+  requireSupabase()
+  // const { data, error } = await supabase.from('clinics').insert({
+  //   name: clinic.name.trim(),
+  //   cnpj: clinic.cnpj.trim(),
+  //   phone: clinic.phone.trim(),
+  //   address: clinic.address.trim(),
+  //   description: clinic.description.trim(),
+  // }).select().single()
+  // if (error) throw error
+  // return data
+}
+
+// NOVO: remove uma clínica pelo id
+export async function deleteClinic(id) {
+  if (USE_MOCK) {
+    await delay(200)
+    const index = MOCK.clinics.findIndex((c) => c.id === id)
+    if (index === -1) {
+      throw new Error('Clínica não encontrada.')
+    }
+    MOCK.clinics.splice(index, 1)
+    return true
+  }
+  requireSupabase()
+  // const { error } = await supabase.from('clinics').delete().eq('id', id)
+  // if (error) throw error
+  // return true
+}
+
+// NOVO: remove um procedimento pelo id
+export async function deleteProcedure(id) {
+  if (USE_MOCK) {
+    await delay(200)
+    const index = MOCK.procedures.findIndex((p) => p.id === id)
+    if (index === -1) {
+      throw new Error('Procedimento não encontrado.')
+    }
+    MOCK.procedures.splice(index, 1)
+    return true
+  }
+  requireSupabase()
+  // const { error } = await supabase.from('procedures').delete().eq('id', id)
+  // if (error) throw error
+  // return true
+}

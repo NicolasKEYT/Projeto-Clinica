@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 const NAV_LINKS = [
   { to: '/doutor', label: 'Dashboard', end: true },
   { to: '/doutor/procedimentos', label: 'Tipos de Consulta' },
+  { to: '/doutor/clinicas', label: 'Clínicas' }, // NOVO
   { to: '/doutor/pacientes', label: 'Pacientes' },
   { to: '/doutor/configuracoes', label: 'Configurações LGPD' },
 ]

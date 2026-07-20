@@ -1,16 +1,15 @@
 import { useState } from 'react'
-import { useDoctorProcedures } from '../../hooks/useDoctorData'
-import { createProcedure, updateProcedure } from '../../services/doctorService' // ALTERADO: updateProcedure adicionado
+import { useDoctorProcedures, useDoctorClinics } from '../../hooks/useDoctorData'
+import { createProcedure, updateProcedure, deleteProcedure } from '../../services/doctorService' // ALTERADO: deleteProcedure adicionado
 import { formatPrice } from '../../utils/format'
-import { LoadingState, Modal, useToast } from '../ui'
+import { LoadingState, Modal, MultiSelectDropdown, ConfirmDialog, useToast } from '../ui' // ALTERADO: ConfirmDialog adicionado
 
-const EMPTY_FORM = { name: '', duration_min: '', price_base: '', active: true }
+const EMPTY_FORM = { name: '', duration_min: '', price_base: '', active: true, clinic_ids: [] }
 
-// ALTERADO: agora aceita uma prop opcional `procedure` — se vier preenchida, o modal entra em modo de edição
 function ProcedureFormModal({ procedure, onClose, onSaved }) {
-  const isEditing = Boolean(procedure) // NOVO
+  const isEditing = Boolean(procedure)
+  const { clinics } = useDoctorClinics()
 
-  // NOVO: se `procedure` foi passado, usa os dados dele como valor inicial do formulário
   const [form, setForm] = useState(
     procedure
       ? {
@@ -18,6 +17,7 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
           duration_min: procedure.duration_min,
           price_base: procedure.price_base,
           active: procedure.active,
+          clinic_ids: procedure.clinic_ids ?? [],
         }
       : EMPTY_FORM
   )
@@ -26,6 +26,18 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
 
   function handleChange(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleToggleClinic(clinicId) {
+    setForm((current) => {
+      const alreadySelected = current.clinic_ids.includes(clinicId)
+      return {
+        ...current,
+        clinic_ids: alreadySelected
+          ? current.clinic_ids.filter((id) => id !== clinicId)
+          : [...current.clinic_ids, clinicId],
+      }
+    })
   }
 
   async function handleSubmit(e) {
@@ -46,13 +58,12 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
     setError(null)
     setSaving(true)
     try {
-      // ALTERADO: decide entre criar ou atualizar, dependendo do modo do modal
       if (isEditing) {
         await updateProcedure(procedure.id, form)
       } else {
         await createProcedure(form)
       }
-      onSaved(isEditing) // ALTERADO: informa ao pai se foi uma edição ou criação, pra customizar o toast
+      onSaved(isEditing)
     } catch (err) {
       setError(err.message ?? 'Não foi possível salvar o procedimento.')
     } finally {
@@ -61,7 +72,6 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
   }
 
   return (
-    // ALTERADO: título muda conforme o modo
     <Modal title={isEditing ? 'Editar Procedimento' : 'Novo Procedimento'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="form-grid">
         <label>
@@ -104,6 +114,14 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
           Ativo
         </label>
 
+        <MultiSelectDropdown
+          label="Clínicas"
+          options={clinics.map((c) => ({ id: c.id, label: c.name }))}
+          selectedIds={form.clinic_ids}
+          onToggle={handleToggleClinic}
+          placeholder="Selecione as clínicas"
+        />
+
         {error && <p className="form-error">{error}</p>}
 
         <div className="modal-actions">
@@ -122,21 +140,36 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
 export default function ProcedimentosView() {
   const { procedures, loading, refetch } = useDoctorProcedures()
   const { show } = useToast()
-  const [showCreate, setShowCreate] = useState(false) // ALTERADO: antes era `modalOpen`, renomeado pra deixar claro que é só do fluxo de criação
-  const [editingProcedure, setEditingProcedure] = useState(null) // NOVO: guarda o procedimento sendo editado (ou null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [editingProcedure, setEditingProcedure] = useState(null)
+  const [deletingProcedure, setDeletingProcedure] = useState(null) // NOVO: procedimento marcado para exclusão (ou null)
+  const [deleting, setDeleting] = useState(false) // NOVO: estado de carregamento da exclusão
 
-  // ALTERADO: renomeado de handleCreated pra handleSaved, cobre criação e edição
   function handleSaved(wasEditing) {
     setShowCreate(false)
     setEditingProcedure(null)
     refetch()
-    show(wasEditing ? 'Procedimento atualizado com sucesso.' : 'Procedimento adicionado com sucesso.') // NOVO: mensagem varia conforme o caso
+    show(wasEditing ? 'Procedimento atualizado com sucesso.' : 'Procedimento adicionado com sucesso.')
   }
 
-  // NOVO: fecha o modal independente de qual dos dois estados estava aberto
   function handleCloseModal() {
     setShowCreate(false)
     setEditingProcedure(null)
+  }
+
+  // NOVO: confirma e executa a exclusão do procedimento
+  async function handleConfirmDelete() {
+    setDeleting(true)
+    try {
+      await deleteProcedure(deletingProcedure.id)
+      setDeletingProcedure(null)
+      refetch()
+      show('Procedimento removido com sucesso.')
+    } catch (err) {
+      show(err.message ?? 'Não foi possível remover o procedimento.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -175,9 +208,23 @@ export default function ProcedimentosView() {
                 )}
               </span>
               <div className="actions-col">
-                {/* ALTERADO: agora abre o modal de edição em vez de só mostrar um toast */}
                 <button className="action-link" onClick={() => setEditingProcedure(p)}>
                   Editar
+                </button>
+                {/* NOVO: botão de lixeira, abre a confirmação de exclusão */}
+                <button
+                  className="icon-btn icon-btn-danger"
+                  onClick={() => setDeletingProcedure(p)}
+                  aria-label={`Excluir ${p.name}`}
+                  title="Excluir"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -185,12 +232,23 @@ export default function ProcedimentosView() {
         )}
       </div>
 
-      {/* ALTERADO: um único modal cobre os dois fluxos — cria quando showCreate é true, edita quando editingProcedure tem valor */}
       {(showCreate || editingProcedure) && (
         <ProcedureFormModal
           procedure={editingProcedure}
           onClose={handleCloseModal}
           onSaved={handleSaved}
+        />
+      )}
+
+      {/* NOVO: confirmação antes de excluir um procedimento */}
+      {deletingProcedure && (
+        <ConfirmDialog
+          title="Excluir Procedimento"
+          message={`Tem certeza que deseja excluir "${deletingProcedure.name}"? Essa ação não pode ser desfeita.`}
+          confirmLabel={deleting ? 'Excluindo...' : 'Excluir'}
+          danger
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingProcedure(null)}
         />
       )}
     </section>

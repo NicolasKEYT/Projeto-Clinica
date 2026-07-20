@@ -4,6 +4,7 @@ import {
   getTodaySchedule,
   getProcedures,
   getPatients,
+  getClinics,
 } from '../services/doctorService'
 
 export function useDashboardMetrics() {
@@ -24,4 +25,10 @@ export function useDoctorProcedures() {
 export function usePatients(search) {
   const { data, loading, error } = useAsync(() => getPatients(search), [search])
   return { patients: data ?? [], loading, error }
+}
+
+// NOVO: hook de clínicas, com refetch (mesmo padrão do useDoctorProcedures)
+export function useDoctorClinics() {
+  const { data, loading, error, refetch } = useAsync(() => getClinics(), [])
+  return { clinics: data ?? [], loading, error, refetch }
 }

@@ -185,10 +185,10 @@ header { display: flex; justify-content: space-between; align-items: flex-start;
   font-size: 14px;
   align-items: center;
 }
-.list-item.admin-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+.list-item.admin-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto;}
 .list-item.dash-grid { grid-template-columns: 80px 1fr 1fr 100px; }
 .list-item:last-child { border-bottom: none; padding-bottom: 0; }
-.list-header { color: var(--text-muted); font-weight: 500; font-size: 13px; }
+.list-header { color: var(--text-muted); font-weight: 500; font-size: 13px;}
 
 .status { text-align: right; border-radius: 4px; padding: 4px 8px; font-size: 12px; display: inline-block; }
 .status.done { background: rgba(76, 175, 80, 0.1); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.2); }
@@ -541,14 +541,8 @@ body.light-theme .image-box { background-color: #eaeaea; color: #555; }
   gap: 16px;
 }
 
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--text-muted, #9ca3af);
-  font-weight: 500;
-}
+/* REMOVIDO: regra antiga ".form-grid label" (sem ">") que conflitava com os
+   labels internos do dropdown de clínicas — substituída por ".form-grid > label" abaixo */
 
 .form-grid input[type='text'],
 .form-grid input[type='number'] {
@@ -834,3 +828,177 @@ body.light-theme .image-box { background-color: #eaeaea; color: #555; }
   gap: 16px;
 }
 .empty-highlight p { color: var(--text-muted); font-size: 14px; }
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* NOVO: texto de aviso dentro do ConfirmDialog */
+.confirm-message {
+  color: var(--text-muted, #9ca3af);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+/* NOVO: estilo da textarea de descrição no formulário de clínica, mesmo padrão dos outros inputs */
+.form-grid textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+/* ALTERADO: com ">", restringe aos labels diretos do form — não afeta os labels
+   aninhados dentro do painel do dropdown de clínicas */
+.form-grid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #9ca3af);
+  font-weight: 500;
+}
+
+.form-grid textarea:focus {
+  outline: none;
+  border-color: var(--accent, #3b82f6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* NOVO: contêiner do dropdown de seleção múltipla */
+.multiselect {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* NOVO: botão que abre/fecha o dropdown, mesmo visual dos outros inputs */
+.multiselect-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.multiselect-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.multiselect-placeholder {
+  color: var(--text-muted, #9ca3af);
+}
+
+.multiselect-arrow {
+  font-size: 0.7rem;
+  color: var(--text-muted, #9ca3af);
+  margin-left: 8px;
+}
+
+/* NOVO: painel flutuante com as opções, aberto logo abaixo do botão */
+.multiselect-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-surface, #16181d);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px;
+  z-index: 10;
+}
+
+.multiselect-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.multiselect-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* REMOVIDO: ".multiselect-option input[type='checkbox']" — o input agora usa
+   .visually-hidden (abaixo), então não faz mais sentido dar tamanho/cor a ele */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* NOVO: destaque de fundo quando a clínica está selecionada */
+.multiselect-option.selected {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* NOVO: marca de seleção, substitui o checkbox */
+.multiselect-check {
+  color: var(--accent, #3b82f6);
+  font-weight: 700;
+}
+
+/* NOVO: botão de ícone genérico (usado na lixeira de excluir, e reutilizável para outros ícones no futuro) */
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #9ca3af);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* NOVO: variante vermelha para ações destrutivas (excluir) */
+.icon-btn-danger:hover {
+  color: #ef4444;
+}

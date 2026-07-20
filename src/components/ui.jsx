@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react' // ALTERADO: adicionado useEffect
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { formatDate } from '../utils/format'
 import { statusLabel } from '../utils/status'
 
@@ -86,6 +86,105 @@ export function Modal({ title, onClose, children }) {
         </header>
         <div className="modal-body">{children}</div>
       </div>
+    </div>
+  )
+}
+
+  // NOVO: modal de confirmação genérico, usado antes de ações destrutivas (como excluir)
+export function ConfirmDialog({
+  title,
+  message,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+  danger = false,
+  onConfirm,
+  onCancel,
+}) {
+  return (
+    <Modal title={title} onClose={onCancel}>
+      <p className="confirm-message">{message}</p>
+      <div className="modal-actions">
+        <button type="button" className="btn-secondary" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+        <button
+          type="button"
+          className={danger ? 'btn-danger' : 'btn-primary'}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+// NOVO: dropdown de seleção múltipla (usado para vincular procedimentos a várias clínicas)
+export function MultiSelectDropdown({ label, options, selectedIds, onToggle, placeholder = 'Selecione' }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
+
+  // NOVO: fecha o dropdown ao clicar fora dele
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const summary =
+    selectedIds.length === 0
+      ? placeholder
+      : selectedIds.length === 1
+      ? options.find((o) => o.id === selectedIds[0])?.label ?? '1 selecionada'
+      : `${selectedIds.length} clínicas selecionadas`
+
+  return (
+    <div className="multiselect" ref={containerRef}>
+      {label && <span className="field-label">{label}</span>}
+      <button
+        type="button"
+        className="multiselect-trigger"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className={selectedIds.length === 0 ? 'multiselect-placeholder' : ''}>
+          {summary}
+        </span>
+        <span className="multiselect-arrow">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="multiselect-panel">
+          {options.length === 0 ? (
+            <p className="field-hint">Nenhuma clínica cadastrada ainda.</p>
+          ) : (
+            options.map((option) => {
+              const selected = selectedIds.includes(option.id)
+              return (
+                <label
+                  key={option.id}
+                  className={`multiselect-option${selected ? ' selected' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => {
+                      onToggle(option.id) // ALTERADO: marca/desmarca a clínica
+                      setOpen(false) // NOVO: fecha o painel automaticamente após a escolha
+                    }}
+                    className="visually-hidden"
+                  />
+                  <span>{option.label}</span>
+                  {selected && <span className="multiselect-check">✓</span>}
+                </label>
+              )
+            })
+          )}
+        </div>
+      )}
     </div>
   )
 }
