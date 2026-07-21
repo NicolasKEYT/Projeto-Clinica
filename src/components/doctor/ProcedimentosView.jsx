@@ -1,10 +1,20 @@
 import { useState } from 'react'
 import { useDoctorProcedures, useDoctorClinics } from '../../hooks/useDoctorData'
-import { createProcedure, updateProcedure, deleteProcedure } from '../../services/doctorService' // ALTERADO: deleteProcedure adicionado
+import { createProcedure, updateProcedure, deleteProcedure } from '../../services/doctorService'
 import { formatPrice } from '../../utils/format'
-import { LoadingState, Modal, MultiSelectDropdown, ConfirmDialog, useToast } from '../ui' // ALTERADO: ConfirmDialog adicionado
+import { LoadingState, Modal, MultiSelectDropdown, ConfirmDialog, useToast } from '../ui'
 
 const EMPTY_FORM = { name: '', duration_min: '', price_base: '', active: true, clinic_ids: [] }
+
+function clinicNamesFor(procedure, clinics) {
+  if (!procedure.clinic_ids || procedure.clinic_ids.length === 0) {
+    return 'Nenhuma clínica vinculada'
+  }
+  const names = clinics
+    .filter((c) => procedure.clinic_ids.includes(c.id))
+    .map((c) => c.name)
+  return names.length > 0 ? names.join(', ') : 'Nenhuma clínica vinculada'
+}
 
 function ProcedureFormModal({ procedure, onClose, onSaved }) {
   const isEditing = Boolean(procedure)
@@ -139,11 +149,12 @@ function ProcedureFormModal({ procedure, onClose, onSaved }) {
 
 export default function ProcedimentosView() {
   const { procedures, loading, refetch } = useDoctorProcedures()
+  const { clinics } = useDoctorClinics() // necessário para exibir o nome das clínicas vinculadas
   const { show } = useToast()
   const [showCreate, setShowCreate] = useState(false)
   const [editingProcedure, setEditingProcedure] = useState(null)
-  const [deletingProcedure, setDeletingProcedure] = useState(null) // NOVO: procedimento marcado para exclusão (ou null)
-  const [deleting, setDeleting] = useState(false) // NOVO: estado de carregamento da exclusão
+  const [deletingProcedure, setDeletingProcedure] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   function handleSaved(wasEditing) {
     setShowCreate(false)
@@ -157,7 +168,6 @@ export default function ProcedimentosView() {
     setEditingProcedure(null)
   }
 
-  // NOVO: confirma e executa a exclusão do procedimento
   async function handleConfirmDelete() {
     setDeleting(true)
     try {
@@ -185,10 +195,12 @@ export default function ProcedimentosView() {
       </header>
 
       <div className="section-box">
-        <div className="list-item admin-grid list-header">
+        {/* ALTERADO: admin-grid trocado por procedures-grid, e coluna "Clínica(s)" adicionada */}
+        <div className="list-item procedures-grid list-header">
           <span>Procedimento</span>
           <span>Duração</span>
           <span>Valor Base</span>
+          <span>Clínica(s)</span>
           <span>Status</span>
           <span className="actions-col">Ações</span>
         </div>
@@ -196,10 +208,11 @@ export default function ProcedimentosView() {
           <LoadingState />
         ) : (
           procedures.map((p) => (
-            <div className="list-item admin-grid" key={p.id}>
+            <div className="list-item procedures-grid" key={p.id}>
               <span>{p.name}</span>
               <span style={{ color: 'var(--text-muted)' }}>{p.duration_min} min</span>
               <span style={{ color: 'var(--text-muted)' }}>{formatPrice(p.price_base)}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{clinicNamesFor(p, clinics)}</span>
               <span>
                 {p.active ? (
                   <span className="status active-tag">Ativo</span>
@@ -211,7 +224,6 @@ export default function ProcedimentosView() {
                 <button className="action-link" onClick={() => setEditingProcedure(p)}>
                   Editar
                 </button>
-                {/* NOVO: botão de lixeira, abre a confirmação de exclusão */}
                 <button
                   className="icon-btn icon-btn-danger"
                   onClick={() => setDeletingProcedure(p)}
@@ -240,7 +252,6 @@ export default function ProcedimentosView() {
         />
       )}
 
-      {/* NOVO: confirmação antes de excluir um procedimento */}
       {deletingProcedure && (
         <ConfirmDialog
           title="Excluir Procedimento"
