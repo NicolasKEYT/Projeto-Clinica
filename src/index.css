@@ -1003,3 +1003,42 @@ body.light-theme .image-box { background-color: #eaeaea; color: #555; }
 .icon-btn-danger:hover {
   color: #ef4444;
 }
+/* Grade da agenda: horário | paciente | procedimento | status | ações */
+.list-item.agenda-grid {
+  grid-template-columns: 80px 1.2fr 1.2fr 120px auto;
+  gap: 12px;
+}
+
+/* Botões pequenos de ação dentro da linha da agenda */
+.btn-mini {
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-mini:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+.btn-mini:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Variante discreta, usada para ações negativas como "Falta" */
+.btn-mini.ghost {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+.btn-mini.ghost:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}

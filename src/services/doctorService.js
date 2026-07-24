@@ -1,216 +1,209 @@
 import { supabase } from '../lib/supabase'
 
-// Mesma chave de transição da área do paciente.
-const USE_MOCK = true
-
-const MOCK = {
-  metrics: { patientsToday: 14, waitingReception: 3, completedToday: 5 },
-  todaySchedule: [
-    { id: 'a1', time: '08:00', patient: 'Carlos Silva', procedure: 'Consulta', status: 'done' },
-    { id: 'a2', time: '09:30', patient: 'Mariana Costa', procedure: 'Avaliação', status: 'done' },
-    { id: 'a3', time: '10:45', patient: 'Roberto Alves', procedure: 'Retorno', status: 'waiting' },
-  ],
-  clinics: [{id: 1, name: 'Clínica Vida Nova', cnpj: '12.345.678/0001-90', phone: '(11) 3456-7890', address: 'Av. Paulista, 1000 - São Paulo/SP', description: 'Unidade principal, atendimento geral.',},],
-  procedures: [],
-  patients: [
-    { id: 'p1', name: 'Ana Beatriz Lima', cpf: '123.***.***-00', lastVisit: 'Hoje', phone: '(11) 98765-4321' },
-    { id: 'p2', name: 'Mariana Costa', cpf: '456.***.***-22', lastVisit: 'Hoje', phone: '(21) 99999-8888' },
-  ],
-}
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+// ========================================================================
+// Área do doutor — tudo ligado ao Supabase.
+//
+// Modelo de procedimentos: cada procedimento pertence a UMA clínica e tem
+// preço próprio. O mesmo serviço oferecido em duas unidades vira duas
+// linhas, uma para cada, com o preço de cada uma.
+//
+// O clinic_id NÃO é enviado pelo frontend: o banco preenche sozinho com a
+// clínica do doutor logado (DEFAULT current_clinic_id()). Isso evita que a
+// tela possa, por engano, cadastrar na clínica errada.
+// ========================================================================
 
 function requireSupabase() {
   if (!supabase) {
-    throw new Error('Supabase não configurado. Preencha o .env ou mantenha USE_MOCK = true.')
+    throw new Error('Supabase não configurado. Preencha o .env com as chaves do projeto.')
   }
 }
 
-// Métricas do dashboard (no Supabase, use uma view ou RPC de agregação)
+// ======================= AGENDA / MÉTRICAS / PACIENTES =======================
+
+// Métricas do dashboard — função dashboard_metrics() no banco.
 export async function getDashboardMetrics() {
-  if (USE_MOCK) {
-    await delay(200)
-    return MOCK.metrics
-  }
   requireSupabase()
-  // const { data, error } = await supabase.rpc('dashboard_metrics')
-  // if (error) throw error
-  // return data
+  const { data, error } = await supabase.rpc('dashboard_metrics')
+  if (error) throw error
+  const m = Array.isArray(data) ? data[0] : data
+  return {
+    patientsToday: Number(m?.patients_today ?? 0),
+    revenueToday: Number(m?.revenue_today ?? 0),
+    averageTicket: Number(m?.average_ticket ?? 0),
+    noShows: Number(m?.no_shows ?? 0),
+    revenueSeries: [], // série de 7 dias fica para uma etapa futura
+  }
 }
 
-// Agenda de hoje (todos os pacientes do doutor)
+// Agenda do dia — função agenda_hoje() no banco.
 export async function getTodaySchedule() {
-  if (USE_MOCK) {
-    await delay(250)
-    return MOCK.todaySchedule
-  }
   requireSupabase()
-  // const today = new Date().toISOString().slice(0, 10)
-  // const { data, error } = await supabase.from('appointments')
-  //   .select('id, date, status, patient:patients(name), procedure:procedures(name)')
-  //   .gte('date', today + 'T00:00:00').lte('date', today + 'T23:59:59')
-  //   .order('date')
-  // if (error) throw error
-  // return data.map(...) // achatar para { id, time, patient, procedure, status }
+  const { data, error } = await supabase.rpc('agenda_hoje')
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    time: r.hora,
+    patient: r.paciente,
+    procedure: r.procedimento,
+    status: r.status,
+  }))
 }
 
-// Procedimentos — doutor vê todos, inclusive inativos
-export async function getProcedures() {
-  if (USE_MOCK) {
-    await delay(200)
-    return MOCK.procedures
-  }
+// Avança o status de uma consulta (botões da agenda).
+export async function updateAppointmentStatus(id, status) {
   requireSupabase()
-  // const { data, error } = await supabase.from('procedures')
-  //   .select('id, name, duration_min, price_base, active').order('name')
-  // if (error) throw error
-  // return data
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
 
-// Lista de pacientes com busca
+// Pacientes da clínica — função pacientes_da_clinica().
 export async function getPatients(search = '') {
-  if (USE_MOCK) {
-    await delay(250)
-    const term = search.trim().toLowerCase()
-    if (!term) return MOCK.patients
-    return MOCK.patients.filter(
-      (p) => p.name.toLowerCase().includes(term) || p.cpf.includes(term)
-    )
-  }
   requireSupabase()
-  // let query = supabase.from('patients').select('id, name, cpf, phone, last_visit')
-  // if (search) query = query.ilike('name', '%' + search + '%')
-  // const { data, error } = await query
-  // if (error) throw error
-  // return data
+  const { data, error } = await supabase.rpc('pacientes_da_clinica', { p_busca: search ?? '' })
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.full_name,
+    cpf: r.cpf_mascara,
+    phone: r.phone ?? '—',
+    lastVisit: r.ultima ? new Date(r.ultima).toLocaleDateString('pt-BR') : '—',
+  }))
 }
 
-// NOVO: cria um novo procedimento (usado pelo formulário do modal em ProcedimentosView)
+// ============================ PROCEDIMENTOS ============================
+
+// A RLS já limita o resultado à clínica do doutor logado, inclusive os
+// inativos — não é preciso filtrar por clinic_id aqui.
+export async function getProcedures() {
+  requireSupabase()
+  const { data, error } = await supabase
+    .from('procedures')
+    .select('id, name, duration_min, price_base, active, clinic_id')
+    .order('name')
+  if (error) throw error
+
+  // clinic_ids (array) é mantido por compatibilidade com a listagem atual da
+  // tela, que exibe o nome da clínica vinculada. Pode ser removido quando o
+  // formulário deixar de usar seleção múltipla.
+  return (data ?? []).map((p) => ({ ...p, clinic_ids: p.clinic_id ? [p.clinic_id] : [] }))
+}
+
 export async function createProcedure(procedure) {
-  if (USE_MOCK) {
-    await delay(200)
-    const newProcedure = {
-      id: Date.now(),
+  requireSupabase()
+  const { data, error } = await supabase
+    .from('procedures')
+    .insert({
       name: procedure.name.trim(),
       duration_min: Number(procedure.duration_min),
       price_base: Number(procedure.price_base),
       active: procedure.active ?? true,
-      clinic_ids: procedure.clinic_ids ?? [],
-    }
-    MOCK.procedures.push(newProcedure) // NOVO: insere no mock em memória pra refletir na lista após o refetch
-    return newProcedure
-  }
-  requireSupabase()
-  // const { data, error } = await supabase.from('procedures').insert({
-  //   name: procedure.name.trim(),
-  //   duration_min: Number(procedure.duration_min),
-  //   price_base: Number(procedure.price_base),
-  //   active: procedure.active ?? true,
-  // }).select().single()
-  // if (error) throw error
-  // return data
+      // clinic_id omitido de propósito: o banco preenche com a clínica do doutor.
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return { ...data, clinic_ids: data.clinic_id ? [data.clinic_id] : [] }
 }
 
-  // NOVO: atualiza um procedimento existente
 export async function updateProcedure(id, updates) {
-  if (USE_MOCK) {
-    await delay(200)
-    const index = MOCK.procedures.findIndex((p) => p.id === id)
-    if (index === -1) {
-      throw new Error('Procedimento não encontrado.')
-    }
-    const updated = {
-      ...MOCK.procedures[index],
+  requireSupabase()
+  const { data, error } = await supabase
+    .from('procedures')
+    .update({
       name: updates.name.trim(),
       duration_min: Number(updates.duration_min),
       price_base: Number(updates.price_base),
       active: updates.active ?? true,
-      clinic_ids: updates.clinic_ids ?? [],
-    }
-    MOCK.procedures[index] = updated // NOVO: substitui o item no array mock
-    return updated
-  }
-  requireSupabase()
-  // const { data, error } = await supabase.from('procedures').update({
-  //   name: updates.name.trim(),
-  //   duration_min: Number(updates.duration_min),
-  //   price_base: Number(updates.price_base),
-  //   active: updates.active ?? true,
-  // }).eq('id', id).select().single()
-  // if (error) throw error
-  // return data
-  }
-
-  // NOVO: lista as clínicas cadastradas
-export async function getClinics() {
-  if (USE_MOCK) {
-    await delay(200)
-    return MOCK.clinics
-  }
-  requireSupabase()
-  // const { data, error } = await supabase.from('clinics')
-  //   .select('id, name, cnpj, phone, address, description').order('name')
-  // if (error) throw error
-  // return data
+      // clinic_id nunca é alterado: um procedimento não muda de clínica.
+    })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return { ...data, clinic_ids: data.clinic_id ? [data.clinic_id] : [] }
 }
 
-// NOVO: cadastra uma nova clínica
+// Excluir um procedimento que já foi usado em consultas apaga o nome dele do
+// histórico dos pacientes (a consulta fica sem procedimento, só com o valor).
+// Por isso: se houver consultas, o procedimento é DESATIVADO em vez de
+// excluído — some das opções de agendamento e o histórico fica preservado.
+export async function deleteProcedure(id) {
+  requireSupabase()
+
+  const { count, error: countError } = await supabase
+    .from('appointments')
+    .select('id', { count: 'exact', head: true })
+    .eq('procedure_id', id)
+  if (countError) throw countError
+
+  if (count && count > 0) {
+    const { error } = await supabase.from('procedures').update({ active: false }).eq('id', id)
+    if (error) throw error
+    return {
+      deleted: false,
+      deactivated: true,
+      appointments: count,
+      message: `Este procedimento já foi usado em ${count} consulta(s), então foi desativado em vez de excluído. Ele some das opções de agendamento e o histórico dos pacientes fica preservado.`,
+    }
+  }
+
+  const { error } = await supabase.from('procedures').delete().eq('id', id)
+  if (error) throw error
+  return { deleted: true, deactivated: false, message: 'Procedimento excluído.' }
+}
+
+// ============================== CLÍNICAS ==============================
+
+export async function getClinics() {
+  requireSupabase()
+  const { data, error } = await supabase
+    .from('clinics')
+    .select('id, name, cnpj, phone, address, description')
+    .order('name')
+  if (error) throw error
+  return data ?? []
+}
+
+// Criar e excluir clínica são operações de administração da rede. As
+// políticas atuais não dão essa permissão ao doutor, então o banco recusa.
+// Se a rede passar a ter um perfil administrativo, é aqui (e na RLS) que
+// isso será liberado.
 export async function createClinic(clinic) {
-  if (USE_MOCK) {
-    await delay(200)
-    const newClinic = {
-      id: Date.now(),
+  requireSupabase()
+  const { data, error } = await supabase
+    .from('clinics')
+    .insert({
       name: clinic.name.trim(),
       cnpj: clinic.cnpj.trim(),
       phone: clinic.phone.trim(),
       address: clinic.address.trim(),
       description: clinic.description.trim(),
+    })
+    .select()
+    .single()
+  if (error) {
+    if (error.code === '42501' || /row-level security/i.test(error.message)) {
+      throw new Error('Cadastro de clínicas é uma operação da administração da rede e não está liberado para o perfil de doutor.')
     }
-    MOCK.clinics.push(newClinic)
-    return newClinic
+    throw error
   }
-  requireSupabase()
-  // const { data, error } = await supabase.from('clinics').insert({
-  //   name: clinic.name.trim(),
-  //   cnpj: clinic.cnpj.trim(),
-  //   phone: clinic.phone.trim(),
-  //   address: clinic.address.trim(),
-  //   description: clinic.description.trim(),
-  // }).select().single()
-  // if (error) throw error
-  // return data
+  return data
 }
 
-// NOVO: remove uma clínica pelo id
 export async function deleteClinic(id) {
-  if (USE_MOCK) {
-    await delay(200)
-    const index = MOCK.clinics.findIndex((c) => c.id === id)
-    if (index === -1) {
-      throw new Error('Clínica não encontrada.')
-    }
-    MOCK.clinics.splice(index, 1)
-    return true
-  }
   requireSupabase()
-  // const { error } = await supabase.from('clinics').delete().eq('id', id)
-  // if (error) throw error
-  // return true
-}
-
-// NOVO: remove um procedimento pelo id
-export async function deleteProcedure(id) {
-  if (USE_MOCK) {
-    await delay(200)
-    const index = MOCK.procedures.findIndex((p) => p.id === id)
-    if (index === -1) {
-      throw new Error('Procedimento não encontrado.')
+  const { error } = await supabase.from('clinics').delete().eq('id', id)
+  if (error) {
+    if (error.code === '42501' || /row-level security/i.test(error.message)) {
+      throw new Error('Exclusão de clínicas é uma operação da administração da rede e não está liberada para o perfil de doutor.')
     }
-    MOCK.procedures.splice(index, 1)
-    return true
+    throw error
   }
-  requireSupabase()
-  // const { error } = await supabase.from('procedures').delete().eq('id', id)
-  // if (error) throw error
-  // return true
+  return true
 }

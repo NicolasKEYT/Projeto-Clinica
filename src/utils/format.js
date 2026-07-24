@@ -21,6 +21,11 @@ export function formatPrice(value) {
   return 'R$ ' + number.toFixed(2).replace('.', ',')
 }
 
+// Valores inteiros com separador de milhar (ex.: R$ 2.450)
+export function formatMoney(value) {
+  return 'R$ ' + Number(value ?? 0).toLocaleString('pt-BR')
+}
+
 // NOVO: remove tudo que não for dígito. Usado como base pelas máscaras e pelas validações.
 export function onlyDigits(value) {
   return String(value ?? '').replace(/\D/g, '')

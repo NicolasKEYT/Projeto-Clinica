@@ -12,7 +12,11 @@ export default function PacientesView() {
       <header>
         <div className="header-title">
           <h1>Base de Pacientes</h1>
-          <p>Gestão centralizada de cadastros</p>
+          <p>
+            {loading
+              ? 'Carregando...'
+              : `${patients.length} ${patients.length === 1 ? 'paciente' : 'pacientes'} com atendimento nesta clínica.`}
+          </p>
         </div>
         <input
           className="input-field"
@@ -31,9 +35,16 @@ export default function PacientesView() {
           <span>Contato</span>
           <span className="actions-col">Ações</span>
         </div>
+
         {loading ? (
           <LoadingState />
-        ) : patients.length ? (
+        ) : patients.length === 0 ? (
+          <p className="picker-empty" style={{ paddingTop: 16 }}>
+            {search
+              ? 'Nenhum paciente encontrado para essa busca.'
+              : 'Nenhum paciente com consultas nesta clínica ainda.'}
+          </p>
+        ) : (
           patients.map((p) => (
             <div className="list-item admin-grid" key={p.id}>
               <span>{p.name}</span>
@@ -41,14 +52,15 @@ export default function PacientesView() {
               <span style={{ color: 'var(--text-muted)' }}>{p.lastVisit}</span>
               <span style={{ color: 'var(--text-muted)' }}>{p.phone}</span>
               <div className="actions-col">
-                <a className="action-link" onClick={() => show('Abrir prontuário de ' + p.name)}>
+                <a
+                  className="action-link"
+                  onClick={() => show('Ficha clínica de ' + p.name + ' — a construir na Fase 4.')}
+                >
                   Prontuário
                 </a>
               </div>
             </div>
           ))
-        ) : (
-          <p className="loading-state">Nenhum paciente encontrado.</p>
         )}
       </div>
     </section>
